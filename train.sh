@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Train an audio classifier by piping samples.go
+# Train an audio classifier by piping samples/main.go
 # into this script.
 
 if [ ! -f out_net ]; then
