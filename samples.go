@@ -6,12 +6,15 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/unixpickle/audioset"
 	"github.com/unixpickle/essentials"
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	var csvPath string
 	var wavDir string
 	var align int
