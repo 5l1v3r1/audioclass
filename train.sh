@@ -11,5 +11,9 @@ if [ ! -f out_net ]; then
   rm rnn classifier
 fi
 
-neurocli train -net out_net -cost sigmoidce \
-  -batch 8 -adam default
+neurocli train \
+  -net out_net \
+  -cost sigmoidce \
+  -batch ${BATCH_SIZE:-8} \
+  -adam default \
+  -step ${STEP_SIZE:-0.001}
