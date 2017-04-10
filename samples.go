@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -35,33 +36,52 @@ func main() {
 
 	classes := samples.Classes()
 
-	for {
-		perm := rand.Perm(len(samples))
-		for _, i := range perm {
-			sample := samples[i]
-			data, err := sample.Read()
-			if err != nil {
-				essentials.Die(err)
+	sampleChan := loopedSamples(samples)
+	lineChan := make(chan string, 1)
+	for i := 0; i < runtime.GOMAXPROCS(0); i++ {
+		go func() {
+			for sample := range sampleChan {
+				data, err := sample.Read()
+				if err != nil {
+					essentials.Die(err)
+				}
+				if len(data)%align != 0 {
+					padding := make([]float64, align-(len(data)%align))
+					data = append(data, padding...)
+				}
+				lineChan <- pcmToStr(data) + "\n" + classesToStr(classes, sample)
 			}
-			if len(data)%align != 0 {
-				padding := make([]float64, align-(len(data)%align))
-				data = append(data, padding...)
-			}
-			printPCM(data)
-			printClasses(classes, sample)
-		}
+		}()
+	}
+
+	for line := range lineChan {
+		fmt.Println(line)
 	}
 }
 
-func printPCM(data []float64) {
+func loopedSamples(samples audioset.Set) <-chan *audioset.Sample {
+	res := make(chan *audioset.Sample)
+	go func() {
+		for {
+			perm := rand.Perm(len(samples))
+			for _, i := range perm {
+				sample := samples[i]
+				res <- sample
+			}
+		}
+	}()
+	return res
+}
+
+func pcmToStr(data []float64) string {
 	var parts []string
 	for _, x := range data {
 		parts = append(parts, strconv.FormatFloat(x, 'f', -1, 32))
 	}
-	fmt.Println(strings.Join(parts, " "))
+	return strings.Join(parts, " ")
 }
 
-func printClasses(classes []string, sample *audioset.Sample) {
+func classesToStr(classes []string, sample *audioset.Sample) string {
 	var vec []string
 	for _, class := range classes {
 		var present bool
@@ -77,5 +97,5 @@ func printClasses(classes []string, sample *audioset.Sample) {
 			vec = append(vec, "0")
 		}
 	}
-	fmt.Println(strings.Join(vec, " "))
+	return strings.Join(vec, " ")
 }
