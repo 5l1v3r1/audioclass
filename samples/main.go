@@ -19,10 +19,12 @@ func main() {
 	var csvPath string
 	var wavDir string
 	var align int
+	var stride int
 
 	flag.StringVar(&csvPath, "csv", "", "path to segment CSV file")
 	flag.StringVar(&wavDir, "dir", "", "path to sample download directory")
 	flag.IntVar(&align, "align", 512, "PCM sample count alignment")
+	flag.IntVar(&stride, "stride", 1, "sample stride for downsampling")
 	flag.Parse()
 
 	if csvPath == "" || wavDir == "" {
@@ -45,6 +47,7 @@ func main() {
 				if err != nil {
 					essentials.Die(err)
 				}
+				data = downsample(data, stride)
 				if len(data)%align != 0 {
 					padding := make([]float64, align-(len(data)%align))
 					data = append(data, padding...)
@@ -98,4 +101,15 @@ func classesToStr(classes []string, sample *audioset.Sample) string {
 		}
 	}
 	return strings.Join(vec, " ")
+}
+
+func downsample(data []float64, stride int) []float64 {
+	if stride == 1 {
+		return data
+	}
+	res := make([]float64, (len(data)+(stride-1))/stride)
+	for i := range res {
+		res[i] = data[i*stride]
+	}
+	return res
 }
