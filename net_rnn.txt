@@ -2,5 +2,4 @@ Input(w=1, h=1, d=512)
 
 Linear(scale=7)
 
-LSTM(out=256)
 LSTM(out=128)

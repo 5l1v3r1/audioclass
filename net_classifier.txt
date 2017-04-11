@@ -1,3 +1,7 @@
 Input(w=1, h=1, d=128)
 
+FC(out=256)
+Tanh
+FC(out=256)
+Tanh
 FC(out=527)
