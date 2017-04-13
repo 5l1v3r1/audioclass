@@ -20,11 +20,13 @@ func main() {
 	var wavDir string
 	var align int
 	var stride int
+	var augment bool
 
 	flag.StringVar(&csvPath, "csv", "", "path to segment CSV file")
 	flag.StringVar(&wavDir, "dir", "", "path to sample download directory")
 	flag.IntVar(&align, "align", 512, "PCM sample count alignment")
 	flag.IntVar(&stride, "stride", 1, "sample stride for downsampling")
+	flag.BoolVar(&augment, "augment", false, "perform data augmentation")
 	flag.Parse()
 
 	if csvPath == "" || wavDir == "" {
@@ -48,6 +50,9 @@ func main() {
 					essentials.Die(err)
 				}
 				data = downsample(data, stride)
+				if augment {
+					data = audioset.Augment(data)
+				}
 				if len(data)%align != 0 {
 					padding := make([]float64, align-(len(data)%align))
 					data = append(data, padding...)
