@@ -1,5 +1,16 @@
-Input(w=1, h=1, d=512)
+Input(w=512, h=1, d=1)
 
 Linear(scale=7)
+
+Dropout(prob=0.5)
+Conv(w=8, h=1, n=4, sx=4)
+ReLU
+Conv(w=8, h=1, n=16)
+MaxPool(w=4, h=1)
+ReLU
+Conv(w=8, h=1, n=24, sx=2)
+ReLU
+
+Assert(w=12, h=1, d=24)
 
 LSTM(out=128)
