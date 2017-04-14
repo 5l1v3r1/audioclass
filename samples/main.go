@@ -63,7 +63,6 @@ func main() {
 				classStr := classesToStr(classes, sample)
 				if useMFCC {
 					coeffs := mfccStream(data)
-					essentials.Die(len(coeffs))
 					lineChan <- floatsToStr(coeffs) + "\n" + classStr
 				} else {
 					if len(data)%align != 0 {
