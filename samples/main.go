@@ -11,7 +11,10 @@ import (
 
 	"github.com/unixpickle/audioset"
 	"github.com/unixpickle/essentials"
+	"github.com/unixpickle/speechrecog/mfcc"
 )
+
+const inSampleRate = 22050
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -21,12 +24,14 @@ func main() {
 	var align int
 	var stride int
 	var augment bool
+	var useMFCC bool
 
 	flag.StringVar(&csvPath, "csv", "", "path to segment CSV file")
 	flag.StringVar(&wavDir, "dir", "", "path to sample download directory")
 	flag.IntVar(&align, "align", 512, "PCM sample count alignment")
-	flag.IntVar(&stride, "stride", 1, "sample stride for downsampling")
+	flag.IntVar(&stride, "stride", 1, "PCM sample stride for downsampling")
 	flag.BoolVar(&augment, "augment", false, "perform data augmentation")
+	flag.BoolVar(&useMFCC, "mfcc", false, "use MFCC output instead of PCM")
 	flag.Parse()
 
 	if csvPath == "" || wavDir == "" {
@@ -49,15 +54,24 @@ func main() {
 				if err != nil {
 					essentials.Die(err)
 				}
-				data = downsample(data, stride)
+				if !useMFCC {
+					data = downsample(data, stride)
+				}
 				if augment {
 					data = audioset.Augment(data)
 				}
-				if len(data)%align != 0 {
-					padding := make([]float64, align-(len(data)%align))
-					data = append(data, padding...)
+				classStr := classesToStr(classes, sample)
+				if useMFCC {
+					coeffs := mfccStream(data)
+					essentials.Die(len(coeffs))
+					lineChan <- floatsToStr(coeffs) + "\n" + classStr
+				} else {
+					if len(data)%align != 0 {
+						padding := make([]float64, align-(len(data)%align))
+						data = append(data, padding...)
+					}
+					lineChan <- floatsToStr(data) + "\n" + classStr
 				}
-				lineChan <- pcmToStr(data) + "\n" + classesToStr(classes, sample)
 			}
 		}()
 	}
@@ -65,6 +79,20 @@ func main() {
 	for line := range lineChan {
 		fmt.Println(line)
 	}
+}
+
+func mfccStream(data []float64) []float64 {
+	source := &mfcc.SliceSource{Slice: data}
+	outSource := mfcc.MFCC(source, inSampleRate, nil)
+	var res []float64
+	for {
+		next, err := outSource.NextCoeffs()
+		if err != nil {
+			break
+		}
+		res = append(res, next...)
+	}
+	return res
 }
 
 func loopedSamples(samples audioset.Set) <-chan *audioset.Sample {
@@ -81,7 +109,7 @@ func loopedSamples(samples audioset.Set) <-chan *audioset.Sample {
 	return res
 }
 
-func pcmToStr(data []float64) string {
+func floatsToStr(data []float64) string {
 	var parts []string
 	for _, x := range data {
 		parts = append(parts, strconv.FormatFloat(x, 'f', -1, 32))
